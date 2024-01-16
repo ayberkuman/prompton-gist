@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter as FontSans } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import NavBar from "@/components/NavBar";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export const fontSans = FontSans({
   subsets: ["latin"],
@@ -19,14 +21,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <body
         className={cn(
           "min-h-screen bg-background font-sans antialiased",
           fontSans.variable
         )}
       >
-        {children}
+        <TooltipProvider>
+          <NavBar />
+
+          {children}
+        </TooltipProvider>
       </body>
     </html>
   );
