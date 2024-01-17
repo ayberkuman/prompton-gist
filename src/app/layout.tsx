@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import NavBar from "@/components/NavBar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-export const fontSans = FontSans({
+ const fontSans = FontSans({
   subsets: ["latin"],
   variable: "--font-sans",
 });
