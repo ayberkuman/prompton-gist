@@ -1,13 +1,18 @@
 "use client";
-import MaxWidthWrapper from "@/components/MaxWidthWrapper";
-import { Message } from "@/types/gists";
-import { useEffect, useState } from "react";
-import { mockData } from "../../../../placeholder-data";
-import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil1Icon } from "@radix-ui/react-icons";
 import { Progress } from "@/components/ui/progress";
+import { Message } from "@/types/gists";
+import {
+  CheckIcon,
+  Cross2Icon,
+  Pencil1Icon,
+  PlusIcon,
+} from "@radix-ui/react-icons";
+import { useState } from "react";
+import { mockData } from "../../../../placeholder-data";
+import { Input } from "@/components/ui/input";
+import { v4 as uuidv4 } from "uuid";
 
 export default function Page({ params }: { params: { gistId: string } }) {
   const { gistId } = params;
@@ -15,6 +20,12 @@ export default function Page({ params }: { params: { gistId: string } }) {
   const [messages, setMessages] = useState<Message[]>(
     mockData.find((gist) => gist.id === gistId)?.messages || []
   );
+  const [messageBeingEdited, setMessageBeingEdited] = useState<Message | null>(
+    null
+  );
+  const [messageBeingEditedContent, setMessageBeingEditedContent] =
+    useState<string>("");
+
   const userMessages = messages.filter((message) => message.role === "user");
   const firstAssistantMessages = messages.filter(
     (message) => message.role === "assistant1"
@@ -22,6 +33,37 @@ export default function Page({ params }: { params: { gistId: string } }) {
   const secondAssistantMessages = messages.filter(
     (message) => message.role === "assistant2"
   );
+
+  function handleEditMessage(message: Message) {
+    setMessageBeingEdited(message);
+    setMessageBeingEditedContent(message.content);
+  }
+
+  function handleCancelEdit() {
+    if (messageBeingEdited?.id.includes("new-prompt") && messageBeingEdited.content.trim() === "") {
+      setMessages(
+        messages.filter((message) => message.id !== messageBeingEdited?.id)
+      );
+    }
+    setMessageBeingEdited(null);
+  }
+
+  function handleSaveMessage() {
+    if (!messageBeingEditedContent.trim()) {
+      return;
+    }
+    const newMessages = messages.map((message) => {
+      if (message.id === messageBeingEdited?.id) {
+        return {
+          ...message,
+          content: messageBeingEditedContent,
+        };
+      }
+      return message;
+    });
+    setMessages(newMessages);
+    setMessageBeingEdited(null);
+  }
 
   return (
     <div className="mx-auto w-full grow lg:flex xl:px-2">
@@ -78,25 +120,75 @@ export default function Page({ params }: { params: { gistId: string } }) {
             </li>
           ))}
         </div>
-
         <div className="px-4 py-6 sm:px-6 w-full lg:pl-8 xl:pl-6 space-y-4">
+          <h1 className="mx-auto w-max font-semibold text-lg">
+            {mockData.find((gist) => gist.id === gistId)?.projectName} /{" "}
+            {mockData.find((gist) => gist.id === gistId)?.name}
+          </h1>
+
           {userMessages.map((message, index) => (
             <div key={message.id} className="bg-muted shadow sm:rounded-lg">
               <div className="px-4 py-5 sm:p-6">
                 <h3 className="text-base font-semibold leading-6 text-gray-200">
                   {index === 0 ? "Initial Prompt" : `Prompt ${index + 1}`}
                 </h3>
-                <div className="mt-2 font-medium text-gray-400">
-                  <p>{message.content}</p>
-                </div>
-                <div className="mt-5 w-min ml-auto">
-                  <Button className="ml-auto" size="icon">
-                    <Pencil1Icon />
+                {messageBeingEdited?.id === message.id ? (
+                  <Input
+                    onChange={(e) =>
+                      setMessageBeingEditedContent(e.target.value)
+                    }
+                    value={messageBeingEditedContent}
+                    className="bg-slate-900 ring-1 h-min"
+                  />
+                ) : (
+                  <div className="mt-2 font-medium text-gray-400">
+                    <p>{message.content}</p>
+                  </div>
+                )}
+                <div className="mt-5 w-min ml-auto flex gap-2">
+                  {messageBeingEdited?.id === message.id && (
+                    <Button onClick={handleSaveMessage} size="icon">
+                      <CheckIcon />
+                    </Button>
+                  )}
+                  <Button
+                    onClick={
+                      messageBeingEdited?.id === message.id
+                        ? () => handleCancelEdit()
+                        : () => handleEditMessage(message)
+                    }
+                    className="ml-auto"
+                    size="icon"
+                    variant={
+                      messageBeingEdited?.id === message.id
+                        ? "destructive"
+                        : "default"
+                    }
+                  >
+                    {messageBeingEdited?.id === message.id ? (
+                      <Cross2Icon />
+                    ) : (
+                      <Pencil1Icon />
+                    )}
                   </Button>
                 </div>
               </div>
             </div>
           ))}
+          <Button
+            onClick={() => {
+              const newMessage: Message = {
+                id: "new-prompt" + uuidv4(),
+                content: "",
+                role: "user",
+              };
+              setMessages([...messages, newMessage]);
+              handleEditMessage(newMessage);
+            }}
+          >
+            <PlusIcon className="mr-1" />
+            Add Prompt
+          </Button>
         </div>
       </div>
 
